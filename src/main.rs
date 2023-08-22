@@ -72,6 +72,7 @@ fn build_graph(node: Rc<RefCell<Value>>, d: &mut DiGraph<String, ()>) -> Option<
                              node.borrow().clone().label
                                  .unwrap_or("--".to_string()).clone(),
                              node.borrow().clone().data);
+    // Bug: When there are multiple ops from a single input this only visualizes the first one
     if d.node_weights().all(|w| *w != node_label) {
         let nix = d.add_node(node_label.clone());
         let op_node = match node.borrow().op {
