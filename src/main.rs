@@ -1,6 +1,7 @@
 // Trying to build a rust based version of micrograd https://github.com/karpathy/micrograd
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::ops::{Add, Mul};
 use Config::EdgeNoLabel;
 use petgraph::data::{DataMap, FromElements};
 use petgraph::dot::{Config, Dot};
@@ -9,12 +10,12 @@ use petgraph::graph::{DiGraph, NodeIndex};
 
 
 #[derive(Debug, Clone, PartialEq)]
-enum Op {
+pub enum Op {
     Add, Mul,None
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Value {
+pub struct Value {
     pub data: f32,
     pub grad: f32,
     pub prev: Vec<Rc<RefCell<Value>>>,
@@ -24,7 +25,7 @@ struct Value {
 
 impl Value {
 
-    fn backward(&mut self) {
+    pub fn backward(&mut self) {
         match self.op {
             Op::Add => {
                 self.prev[0].borrow_mut().grad += self.grad;
@@ -38,6 +39,22 @@ impl Value {
 
             }
         }
+    }
+}
+
+impl Add for Value {
+    type Output = Rc<RefCell<Value>>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        add(Rc::new(RefCell::new(self)), Rc::new(RefCell::new(rhs)))
+    }
+}
+
+impl Mul for Value {
+    type Output = Rc<RefCell<Value>>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        mul(Rc::new(RefCell::new(self)), Rc::new(RefCell::new(rhs)))
     }
 }
 
@@ -120,39 +137,39 @@ fn main() {
 }
 
 fn sample2() {
-    let a = Rc::new(RefCell::new(Value {
+    let a = Value {
         data: 2.0,
         grad: 0.0,
         prev: vec![],
         op: Op::None,
         label: Some("a".to_string())
-    }));
-    let b = Rc::new(RefCell::new(Value {
+    };
+    let b = Value {
         data: -3.0,
         grad: 0.0,
         prev: vec![],
         op: Op::None,
         label: Some("b".to_string())
-    }));
-    let c = Rc::new(RefCell::new(Value {
+    };
+    let c = Value {
         data: 10.0,
         grad: 0.0,
         prev: vec![],
         op: Op::None,
         label: Some("c".to_string())
-    }));
-    let f= Rc::new(RefCell::new(Value {
+    };
+    let f= Value {
         data: -2.0,
         grad: 0.0,
         prev: vec![],
         op: Op::None,
         label: Some("f".to_string())
-    }));
-    let e = mul(a.clone(), b.clone());
+    };
+    let e = a *  b;
     e.borrow_mut().label = Some("e".to_string());
-    let d = add(e.clone(), c.clone());
+    let d = e.borrow_mut().clone() + c;
     d.borrow_mut().label = Some("d".to_string());
-    let l = mul(d.clone(), f.clone());
+    let l = d.borrow_mut().clone() * f;
     l.borrow_mut().label = Some("l".to_string());
 
     backward(l.clone());
